@@ -1,23 +1,28 @@
 import speech_recognition as sr
 import google.generativeai as genai
 import pyttsx3
-import winsound  # for beep sound (Windows only)
+import winsound
+from dotenv import load_dotenv
+import os
 
 # ----------------------------
-# Configure Gemini
+# Load API key from .env
 # ----------------------------
-genai.configure(api_key="AIzaSyCy1ofN1VFRiXohwSPlzuqu_6PsFOhqgTc")
+load_dotenv()  # loads .env file
+api_key = os.getenv("GEMINI_API_KEY")
+
+genai.configure(api_key=api_key)
 model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # ----------------------------
 # Init Recognizer + TTS
 # ----------------------------
 recognizer = sr.Recognizer()
-recognizer.pause_threshold = 1  # wait for 1 sec of silence before ending speech
+recognizer.pause_threshold = 1
 
 engine = pyttsx3.init()
 voices = engine.getProperty("voices")
-engine.setProperty("voice", voices[0].id)  # change index for male/female
+engine.setProperty("voice", voices[0].id)  # male/female
 engine.setProperty("rate", 170)
 engine.setProperty("volume", 1)
 
@@ -28,33 +33,25 @@ print("🤖 Gemini Voice Assistant is ready! Say something... (say 'exit' to qui
 # ----------------------------
 while True:
     with sr.Microphone() as source:
-        # 🔔 Beep before listening
-        winsound.Beep(100, 200)  # frequency=1000Hz, duration=200ms
-
+        winsound.Beep(100, 200)
         print("\n🎤 Listening...")
         recognizer.adjust_for_ambient_noise(source, duration=0.3)
         audio = recognizer.listen(source)
 
     try:
-        # Convert speech to text
         user_input = recognizer.recognize_google(audio)
         print("🗣️ You said:", user_input)
 
-        # Exit condition
         if user_input.lower() in ["exit", "stop", "quit"]:
             print("👋 Goodbye!")
             engine.say("Goodbye, have a nice day!")
             engine.runAndWait()
             break
 
-        # ----------------------------
-        # Send text to Gemini
-        # ----------------------------
         response = model.generate_content(user_input)
         gemini_text = response.text
         print("🤖 Gemini AI says:", gemini_text)
 
-        # Speak response
         engine.say(gemini_text)
         engine.runAndWait()
 
